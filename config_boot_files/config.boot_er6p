@@ -1,0 +1,334 @@
+firewall {
+    all-ping enable
+    broadcast-ping disable
+    group {
+        port-group Router_ports {
+            description ""
+            port %SSH%
+            port %HTTP%
+            port %HTTPS%
+        }
+    }
+    ipv6-receive-redirects disable
+    ipv6-src-route disable
+    ip-src-route disable
+    log-martians enable
+    name LAN_IN {
+        default-action drop
+        description ""
+        enable-default-log
+        rule 10 {
+            action accept
+            description "accept new/established/related"
+            log disable
+            protocol all
+            state {
+                established enable
+                invalid disable
+                new enable
+                related enable
+            }
+        }
+        rule 20 {
+            action drop
+            description "drop Invalid"
+            log disable
+            protocol all
+            state {
+                established disable
+                invalid enable
+                new disable
+                related disable
+            }
+        }
+    }
+    name LAN_LOCAL {
+        default-action drop
+        description ""
+        enable-default-log
+        rule 10 {
+            action accept
+            description "accept ICMP"
+            log disable
+            protocol icmp
+        }
+        rule 20 {
+            action accept
+            description "accept router-interfaces"
+            destination {
+                group {
+                    port-group Router_ports
+                }
+            }
+            log disable
+            protocol tcp
+            source {
+            }
+        }
+        rule 30 {
+            action accept
+            description "accept established/related"
+            log disable
+            protocol all
+            state {
+                established enable
+                invalid disable
+                new disable
+                related enable
+            }
+        }
+        rule 40 {
+            action drop
+            description "drop invalid"
+            log disable
+            protocol all
+            state {
+                established disable
+                invalid enable
+                new disable
+                related disable
+            }
+        }
+    }
+    name WAN_IN {
+        default-action drop
+        description ""
+        enable-default-log
+        rule 10 {
+            action accept
+            description "accept established/related"
+            log disable
+            protocol all
+            state {
+                established enable
+                invalid disable
+                new disable
+                related enable
+            }
+        }
+        rule 20 {
+            action drop
+            description "drop Invalid"
+            log disable
+            protocol all
+            state {
+                established disable
+                invalid enable
+                new disable
+                related disable
+            }
+        }
+    }
+    name WAN_LOCAL {
+        default-action drop
+        description ""
+        enable-default-log
+        rule 10 {
+            action accept
+            description "accept ICMP"
+            log disable
+            protocol icmp
+        }
+        rule 20 {
+            action accept
+            description "accept router-interfaces"
+            destination {
+                group {
+                    port-group Router_ports
+                }
+            }
+            log disable
+            protocol tcp
+            source {
+            }
+        }
+        rule 30 {
+            action accept
+            description "accept established/related"
+            log disable
+            protocol all
+            state {
+                established enable
+                invalid disable
+                new disable
+                related enable
+            }
+        }
+        rule 40 {
+            action drop
+            description "drop Invalid"
+            log disable
+            protocol all
+            state {
+                established disable
+                invalid enable
+                new disable
+                related disable
+            }
+        }
+    }
+    receive-redirects disable
+    send-redirects enable
+    source-validation disable
+    syn-cookies enable
+}
+interfaces {
+    ethernet eth0 {
+        address %OUTIP%
+        description WAN
+        duplex auto
+        firewall {
+            in {
+                name WAN_IN
+            }
+            local {
+                name WAN_LOCAL
+            }
+        }
+        speed auto
+    }
+    ethernet eth1 {
+        address %IP%.1/24
+        description LAN
+        duplex auto
+        firewall {
+            in {
+                name LAN_IN
+            }
+            local {
+                name LAN_LOCAL
+            }
+        }
+        speed auto
+    }
+    ethernet eth2 {
+        address dhcp
+        duplex auto
+        poe {
+            output off
+        }
+        speed auto
+    }
+    ethernet eth3 {
+        address dhcp
+        duplex auto
+        poe {
+            output off
+        }
+        speed auto
+    }
+    ethernet eth4 {
+        address dhcp
+        duplex auto
+        poe {
+            output off
+        }
+        speed auto
+    }
+    ethernet eth5 {
+        address dhcp
+        duplex auto
+        speed auto
+    }
+    loopback lo {
+    }
+}
+port-forward {
+    auto-firewall enable
+    hairpin-nat enable
+}
+protocols {
+}
+service {
+    dhcp-server {
+        disabled false
+        hostfile-update disable
+        shared-network-name LAN_subnet {
+            authoritative disable
+            subnet %IP%.0/24 {
+                default-router %IP%.1
+                dns-server %DNS1%
+                dns-server %DNS2%
+                lease 86400
+                start %IP%.100 {
+                    stop %IP%.250
+                }
+            }
+        }
+        static-arp disable
+        use-dnsmasq disable
+    }
+    gui {
+        http-port %HTTP%
+        https-port %HTTPS%
+        older-ciphers enable
+    }
+    nat {
+        rule 4000 {
+            description "LAN to WAN (free_inet)"
+            log disable
+            outbound-interface eth0
+            protocol all
+            source {
+                address %IP%.0/24
+            }
+            type masquerade
+        }
+    }
+    ssh {
+        disable-password-authentication
+        port %SSH%
+        protocol-version v2
+    }
+    unms {
+         disable
+     }
+}
+system {
+    gateway-address %OUTGW%
+    host-name %NAME%-router
+    login {
+        user ubnt {
+            authentication {
+                encrypted-password $5$./aM.9Ka1Yk56dpV$bFns/NUptFWAe.V39f9LRkemKGtMgQjiM0bB1OgKGz3
+                plaintext-password ""
+            }
+            full-name ""
+            level admin
+        }
+    }
+    name-server %DNS1%
+    name-server %DNS2%
+    ntp {
+        server 0.ubnt.pool.ntp.org {
+        }
+        server 1.ubnt.pool.ntp.org {
+        }
+        server 2.ubnt.pool.ntp.org {
+        }
+        server 3.ubnt.pool.ntp.org {
+        }
+    }
+    syslog {
+        global {
+            facility all {
+                level notice
+            }
+            facility protocols {
+                level debug
+            }
+        }
+    }
+    task-scheduler {
+    }
+    time-zone %TZONE%
+    traffic-analysis {
+        dpi enable
+        export enable
+    }
+}
+
+
+/* Warning: Do not remove the following line. */
+/* === vyatta-config-version: "config-management@1:conntrack@1:cron@1:dhcp-relay@1:dhcp-server@4:firewall@5:ipsec@5:nat@3:qos@1:quagga@2:suspend@1:system@4:ubnt-pptp@1:ubnt-udapi-server@1:ubnt-unms@1:ubnt-util@1:vrrp@1:webgui@1:webproxy@1:zone-policy@1" === */
+/* Release version: v1.10.7.5127989.181001.1228 */
